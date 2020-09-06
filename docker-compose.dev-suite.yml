@@ -1,0 +1,78 @@
+version: "3.6"
+services:
+  nginx:
+    image: nginx:${NGINX_VERSION}-alpine
+    container_name: ${PROJECT_NAME}_nginx
+    volumes:
+      - "${DEV_SUITE_BASE}/shared:/shared"
+      - "${DEV_SUITE_BASE}/etc/nginx:/etc/nginx/conf.d"
+      - "${DEV_SUITE_BASE}/etc/ssl:/etc/ssl"
+      - "${NGINX_LOG_DIR}:/var/log/nginx"
+      - "./vendor/johnpbloch/wordpress-core:/var/www/html"
+      - "${DEV_SUITE_BASE}/wp-config.php:/var/www/html/wp-config.php"
+      # If you make plugin or theme development, uncomment this to mount the folder to plugin one
+      # - ".:/var/www/html/wp-content/plugins/your-plugin-name"
+    ports:
+      - "${NGINX_HTTP_EXPOSING_PORT}:80"
+      - "${NGINX_HTTPS_EXPOSING_PORT}:443"
+    environment:
+      NGINX_HOST:
+  php_fpm:
+    image: manhphucofficial/php:latest-fpm
+    container_name: ${PROJECT_NAME}_php_fpm
+    volumes:
+      - "${DEV_SUITE_BASE}/shared:/shared"
+      - "./vendor/johnpbloch/wordpress-core:/var/www/html"
+      - "${DEV_SUITE_BASE}/wp-config.php:/var/www/html/wp-config.php"
+      # If you make plugin or theme development, uncomment this to mount the folder to plugin one
+      # - ".:/var/www/html/wp-content/plugins/your-plugin-name"
+      # In case you want custom ini file
+      # - "${DEV_SUITE_BASE}/etc/php-fpm/php-custom.ini:/etc/php/7.4/fpm/conf.d/php-custom.ini"
+    environment:
+      - DB_HOST
+      - DB_USER
+      - DB_PASSWORD
+      - DB_NAME
+      - DB_CHARSET
+      - DB_COLLATE
+      - DB_TABLE_PREFIX
+      - PHP_UPLOAD_MAX_FILEZISE=256M
+      - PHP_POST_MAX_SIZE=256M
+      - PHP_MEMORY_LIMIT=128M
+      - PHP_MAX_EXECUTION_TIME=120
+      - PHP_MAX_INPUT_TIME=90
+  mariadb:
+    image: mariadb:${MARIADB_TAG}
+    container_name: "${PROJECT_NAME}_mariadb"
+    stop_grace_period: 30s
+    ports:
+      - ${MARIADB_EXPOSING_PORT}:3306
+    environment:
+      MYSQL_ROOT_PASSWORD:
+      MYSQL_DATABASE:
+      MYSQL_USER:
+      MYSQL_PASSWORD:
+  adminer:
+    image: adminer:${ADMINER_TAG}
+    volumes:
+      - "${DEV_SUITE_BASE}/etc/adminer/0-upload_large_dumps.ini:/usr/local/etc/php/conf.d/0-upload_large_dumps.ini"
+    ports:
+      - ${ADMINIER_WEB_EXPOSING_PORT}:8080
+    environment:
+      ADMINER_DESIGN: 'nette'
+      # # For PostgreSQL:
+      # ADMINER_DEFAULT_DB_DRIVER: pgsql
+      # ADMINER_DEFAULT_DB_HOST: $DB_HOST
+      # ADMINER_DEFAULT_DB_NAME: $DB_NAME
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "${PHPMYADMIN_WEB_EXPOSING_PORT}:80"
+    environment:
+      - PMA_ARBITRARY=1
+      - PHP_UPLOAD_MAX_FILESIZE=1G
+      - PHP_POST_MAX_SIZE=1G
+      - PHP_MEMORY_LIMIT=0
+      - PHPMYADMIN_ALLOW_ARBITRARY_SERVER=yes
+      - PHP_MAX_INPUT_VARS=1G
+      - UPLOAD_LIMIT=1G
